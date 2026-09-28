@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Math Dart Board Timer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@700;800;900&display=swap');
+
+  :root {
+    --yellow:      #FFD000;
+    --yellow-dark: #E6B800;
+    --yellow-bg:   #FFFBEA;
+    --blue:        #1A8FE3;
+    --blue-dark:   #1270B8;
+    --blue-light:  #E8F4FD;
+    --green:       #22C55E;
+    --green-dark:  #16A34A;
+    --green-light: #E8FAF0;
+    --orange:      #FF6B35;
+    --orange-light:#FFF0EB;
+    --text:        #1A2840;
+    --text-soft:   #4A6080;
+    --border:      #D8E8F5;
+    --surface:     #FFFFFF;
+    --bg:          #F0F8FF;
+    --radius:      18px;
+    --radius-sm:   10px;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  *, *::before, *::after { box-sizing: inherit; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: 'Nunito', sans-serif;
+    overflow-x: hidden;
+  }
+
+  body {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(160deg, #E0F2FF 0%, #FFFBEA 50%, #E8FAF0 100%);
+    color: var(--text);
+  }
+
+  /* ── DECORATIVE RINGS (top-right corner) ── */
+  .dart-bg {
+    position: fixed;
+    top: -100px;
+    right: -100px;
+    width: 380px;
+    height: 380px;
+    border-radius: 50%;
+    border: 30px solid rgba(26,143,227,0.10);
+    z-index: 0;
+    pointer-events: none;
+  }
+  .dart-bg::before {
+    content: '';
+    position: absolute;
+    inset: 30px;
+    border-radius: 50%;
+    border: 22px solid rgba(34,197,94,0.10);
+  }
+  .dart-bg::after {
+    content: '';
+    position: absolute;
+    inset: 64px;
+    border-radius: 50%;
+    border: 16px solid rgba(255,208,0,0.16);
+  }
+
+  /* ── WRAPPER ── */
+  .app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 640px;
+    padding: 24px 20px 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    text-align: center;
+    margin-bottom: 20px;
+    width: 100%;
+  }
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--blue);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 5px 16px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    box-shadow: 0 3px 10px rgba(26,143,227,0.30);
+  }
+  .header-badge svg { width: 12px; height: 12px; flex-shrink: 0; }
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(28px, 8vw, 48px);
+    letter-spacing: 2px;
+    line-height: 1.0;
+    color: var(--text);
+  }
+  h1 span { color: var(--blue); }
+  .tagline {
+    font-size: clamp(11px, 2.8vw, 14px);
+    color: var(--text-soft);
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    margin-top: 6px;
+  }
+
+  /* ── SCREEN MANAGEMENT ── */
+  .screen { width: 100%; display: none; flex-direction: column; align-items: center; gap: 14px; }
+  .screen.active { display: flex; }
+
+  /* ── PRESET CARD ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-soft);
+    align-self: flex-start;
+    margin-bottom: -4px;
+  }
+
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+  }
+  .preset-btn {
+    background: var(--surface);
+    border: 2.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+    color: var(--text);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(26,143,227,0.07);
+  }
+  .preset-btn:hover {
+    border-color: var(--blue);
+    background: var(--blue-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(26,143,227,0.18);
+  }
+  .preset-btn.selected {
+    border-color: var(--blue);
+    background: var(--blue-light);
+    box-shadow: 0 0 0 2px var(--blue), 0 6px 20px rgba(26,143,227,0.20);
+    transform: translateY(-2px);
+  }
+  .preset-btn .p-label {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--blue);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .preset-btn.selected .p-label { color: var(--blue-dark); }
+  .preset-btn .p-time {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 34px;
+    letter-spacing: 1px;
+    color: var(--text);
+    display: block;
+  }
+  .preset-btn .p-name {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* ── CUSTOM INPUT ── */
+  .custom-box {
+    background: var(--surface);
+    border: 2.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    width: 100%;
+    transition: border-color 0.15s;
+    box-shadow: 0 2px 8px rgba(26,143,227,0.06);
+  }
+  .custom-box.focused { border-color: var(--green); }
+  .custom-box .cb-title {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-soft);
+    margin-bottom: 12px;
+    display: block;
+  }
+  .custom-inputs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .custom-field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+  .custom-field label {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .custom-field input {
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30px;
+    letter-spacing: 2px;
+    text-align: center;
+    width: 100%;
+    padding: 8px 4px;
+    outline: none;
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+  }
+  .custom-field input::-webkit-outer-spin-button,
+  .custom-field input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .custom-field input:focus { border-color: var(--green); }
+  .colon {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 34px;
+    color: var(--text-soft);
+    margin-top: 14px;
+    flex-shrink: 0;
+  }
+
+  /* ── START BTN ── */
+  .btn-start {
+    background: var(--green);
+    color: #fff;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    border: none;
+    border-radius: var(--radius);
+    padding: 16px 40px;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 5px 20px rgba(34,197,94,0.38);
+  }
+  .btn-start:hover { background: var(--green-dark); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(34,197,94,0.45); }
+  .btn-start:active { transform: translateY(0); }
+
+  /* ══════════════════════════
+     TIMER SCREEN
+  ══════════════════════════ */
+  #timerScreen { gap: 14px; }
+
+  /* dart board ring */
+  .dart-ring {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(310px, 88vw);
+    height: min(310px, 88vw);
+    flex-shrink: 0;
+    margin: 4px 0;
+  }
+  .ring-outer {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 6px solid var(--border);
+    background: radial-gradient(circle at 38% 32%, #ffffff, #EEF6FF);
+    box-shadow: 0 0 0 3px rgba(26,143,227,0.10), 0 10px 40px rgba(26,143,227,0.12);
+  }
+  .ring-mid {
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    border: 4px solid rgba(26,143,227,0.12);
+  }
+  .ring-inner {
+    position: absolute;
+    inset: 28px;
+    border-radius: 50%;
+    border: 3px solid rgba(34,197,94,0.12);
+  }
+  .ring-center {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  /* progress arc */
+  .progress-svg {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    transform: rotate(-90deg);
+  }
+  .progress-track {
+    fill: none;
+    stroke: rgba(26,143,227,0.12);
+    stroke-width: 9;
+  }
+  .progress-bar {
+    fill: none;
+    stroke: var(--blue);
+    stroke-width: 9;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.9s linear, stroke 0.3s ease;
+  }
+
+  /* digits */
+  .timer-digits {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(64px, 18vw, 88px);
+    letter-spacing: 4px;
+    color: var(--text);
+    line-height: 1;
+    transition: color 0.3s ease;
+  }
+  .timer-digits.warning {
+    color: var(--yellow-dark);
+  }
+  .timer-digits.danger {
+    color: var(--orange);
+    animation: pulse 0.5s ease-in-out infinite alternate;
+  }
+  @keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.06); }
+  }
+
+  .timer-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-soft);
+  }
+
+  .status-badge {
+    position: absolute;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    white-space: nowrap;
+    background: var(--bg);
+    color: var(--text-soft);
+    border: 1.5px solid var(--border);
+    transition: all 0.2s;
+  }
+  .status-badge.running { background: var(--blue-light); color: var(--blue-dark); border-color: var(--blue); }
+  .status-badge.paused  { background: var(--yellow-bg); color: #9a7a00; border-color: var(--yellow-dark); }
+  .status-badge.done    { background: var(--orange-light); color: var(--orange); border-color: var(--orange); }
+
+  /* ── WAKTU HABIS ── */
+  .done-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,107,53,0.14), transparent 70%);
+    align-items: center;
+    justify-content: center;
+  }
+  .done-overlay.show { display: flex; }
+  .done-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(22px, 5.5vw, 28px);
+    letter-spacing: 3px;
+    color: var(--orange);
+    text-align: center;
+    animation: blink 0.7s ease-in-out infinite alternate;
+  }
+  @keyframes blink {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0.65; transform: scale(0.95); }
+  }
+
+  /* ── SELECTED LABEL ── */
+  .selected-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text-soft);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .selected-label span { color: var(--blue); }
+
+  /* ── CONTROLS ── */
+  .controls-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    justify-content: center;
+  }
+  .ctrl-btn {
+    flex: 1;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: clamp(12px, 3.2vw, 15px);
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    padding: 14px 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 8px rgba(26,143,227,0.07);
+  }
+  .ctrl-btn svg { width: 20px; height: 20px; }
+  .ctrl-btn:hover { border-color: var(--blue); background: var(--blue-light); }
+  .ctrl-btn:active { transform: scale(0.97); }
+  .ctrl-btn.primary {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+    box-shadow: 0 5px 18px rgba(26,143,227,0.38);
+    flex: 1.5;
+  }
+  .ctrl-btn.primary:hover { background: var(--blue-dark); }
+  .ctrl-btn.accent {
+    border-color: var(--yellow-dark);
+    color: var(--yellow-dark);
+    background: var(--yellow-bg);
+  }
+  .ctrl-btn.accent:hover { background: #FFF3BB; border-color: var(--yellow-dark); }
+  .ctrl-btn.back-btn {
+    border-color: var(--border);
+    color: var(--text-soft);
+    font-size: 12px;
+    background: var(--surface);
+  }
+  .ctrl-btn.sound-btn { flex: 0.6; padding: 14px 6px; }
+  .ctrl-btn.sound-btn.muted { border-color: var(--border); color: #aac0d8; }
+
+  .controls-main { align-items: stretch; }
+
+  /* ── FOOTER UTIL ROW ── */
+  .util-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+
+  /* ── FULLSCREEN (tetap gelap untuk keterbacaan jarak jauh) ── */
+  #fullscreenView {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: #0a1020;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+  }
+  #fullscreenView.active { display: flex; }
+  .fs-digits {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: min(38vw, 240px);
+    letter-spacing: 6px;
+    color: #ffffff;
+    text-align: center;
+    line-height: 1;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+  }
+  .fs-digits.warning { color: var(--yellow); text-shadow: 0 0 40px rgba(255,208,0,0.7); }
+  .fs-digits.danger {
+    color: var(--orange);
+    text-shadow: 0 0 60px rgba(255,107,53,0.9);
+    animation: pulse 0.5s ease-in-out infinite alternate;
+  }
+  .fs-done {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: min(18vw, 100px);
+    letter-spacing: 4px;
+    color: var(--orange);
+    display: none;
+    animation: blink 0.7s ease-in-out infinite alternate;
+  }
+  .fs-done.show { display: block; }
+  .fs-exit {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 900;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+  }
+
+  /* responsive */
+  @media (max-width: 400px) {
+    .app { padding: 16px 14px 24px; }
+    .presets { gap: 8px; }
+    .preset-btn { padding: 12px 4px; }
+    .preset-btn .p-time { font-size: 26px; }
+    h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="dart-bg"></div>
+
+<!-- FULLSCREEN VIEW -->
+<div id="fullscreenView">
+  <div class="fs-digits" id="fsDigits">00:00</div>
+  <div class="fs-done" id="fsDone">⏱ WAKTU HABIS!</div>
+  <button class="fs-exit" onclick="exitFullscreen()">✕ Keluar Layar Penuh</button>
+</div>
+
+<div class="app">
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-badge">
+      <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      Permainan Edukatif
+    </div>
+    <h1>MATH <span>DART</span> BOARD<br>TIMER</h1>
+    <p class="tagline">Bermain, Membidik, dan Menaklukkan Matematika</p>
+  </header>
+
+  <!-- ══════════════════════
+       SCREEN 1: PILIH WAKTU
+  ══════════════════════ -->
+  <section class="screen active" id="selectScreen">
+
+    <span class="section-label">Pilih Durasi</span>
+
+    <div class="presets">
+      <button class="preset-btn" onclick="selectPreset(0, 15, 'Quick Challenge', '15 Detik', this)">
+        <span class="p-label">⚡ Cepat</span>
+        <span class="p-time">15"</span>
+        <span class="p-name">Quick Challenge</span>
+      </button>
+      <button class="preset-btn selected" onclick="selectPreset(0, 30, 'Standard', '30 Detik', this)">
+        <span class="p-label">🎯 Standar</span>
+        <span class="p-time">30"</span>
+        <span class="p-name">Standard</span>
+      </button>
+      <button class="preset-btn" onclick="selectPreset(1, 0, 'Expert', '1 Menit', this)">
+        <span class="p-label">🏆 Ahli</span>
+        <span class="p-time">1'</span>
+        <span class="p-name">Expert</span>
+      </button>
+    </div>
+
+    <div class="custom-box" id="customBox">
+      <span class="cb-title">⏱ Atur durasi sendiri</span>
+      <div class="custom-inputs">
+        <div class="custom-field">
+          <label>Menit</label>
+          <input type="number" id="customMin" min="0" max="59" value="0" placeholder="0" oninput="onCustomInput()">
+        </div>
+        <span class="colon">:</span>
+        <div class="custom-field">
+          <label>Detik</label>
+          <input type="number" id="customSec" min="0" max="59" value="0" placeholder="0" oninput="onCustomInput()">
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-start" onclick="goToTimer()">🎯 MULAI TIMER</button>
+
+  </section>
+
+  <!-- ══════════════════════
+       SCREEN 2: TIMER
+  ══════════════════════ -->
+  <section class="screen" id="timerScreen">
+
+    <div class="selected-label" id="selectedLabel">
+      Mode: <span>Standard — 30 Detik</span>
+    </div>
+
+    <!-- Dart Board Ring with Timer -->
+    <div class="dart-ring" id="dartRing">
+      <div class="ring-outer"></div>
+      <div class="ring-mid"></div>
+      <div class="ring-inner"></div>
+
+      <!-- SVG progress arc -->
+      <svg class="progress-svg" viewBox="0 0 320 320" id="progressSvg">
+        <circle class="progress-track" cx="160" cy="160" r="148"/>
+        <circle class="progress-bar" id="progressBar" cx="160" cy="160" r="148"
+          stroke-dasharray="929.91" stroke-dashoffset="0"/>
+      </svg>
+
+      <div class="ring-center">
+        <div class="timer-digits" id="timerDigits">00:30</div>
+        <div class="timer-label" id="timerLabel">Siap Bermain</div>
+      </div>
+
+      <div class="done-overlay" id="doneOverlay">
+        <div class="done-text">⏱ WAKTU<br>HABIS!</div>
+      </div>
+
+      <div class="status-badge" id="statusBadge">Siap</div>
+    </div>
+
+    <!-- Main Controls -->
+    <div class="controls-row controls-main">
+      <button class="ctrl-btn primary" id="mainBtn" onclick="mainAction()">
+        <svg viewBox="0 0 24 24" fill="currentColor" id="mainBtnIcon"><polygon points="5,3 19,12 5,21"/></svg>
+        <span id="mainBtnLabel">MULAI</span>
+      </button>
+      <button class="ctrl-btn" id="resetBtn" onclick="resetTimer()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        RESET
+      </button>
+    </div>
+
+    <!-- Utility Row -->
+    <div class="util-row">
+      <button class="ctrl-btn back-btn" onclick="goBack()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        Ganti Waktu
+      </button>
+      <button class="ctrl-btn accent" onclick="toggleFullscreen()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        FULLSCREEN
+      </button>
+      <button class="ctrl-btn sound-btn" id="soundBtn" onclick="toggleSound()" title="Suara">
+        <svg viewBox="0 0 24 24" fill="currentColor" id="soundIcon"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+  </section>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//   STATE
+// ══════════════════════════════════════
+let totalSeconds = 30;
+let remaining = 30;
+let running = false;
+let intervalId = null;
+let soundOn = true;
+let selectedModeName = 'Standard — 30 Detik';
+let startTime = null;
+let expectedEnd = null;
+let isDone = false;
+let audioCtx = null;
+
+const CIRCUMFERENCE = 2 * Math.PI * 148; // 929.91
+
+// ══════════════════════════════════════
+//   AUDIO
+// ══════════════════════════════════════
+function getAudioContext() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+  }
+  return audioCtx;
+}
+
+function playBeep(freq = 880, dur = 0.12, vol = 0.5, delay = 0) {
+  if (!soundOn) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    osc.type = 'sine';
+    const t = ctx.currentTime + delay;
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.start(t); osc.stop(t + dur);
+  } catch(e){}
+}
+
+function playDoneSound() {
+  if (!soundOn) return;
+  // 3-beep fanfare
+  playBeep(440, 0.18, 0.6, 0.0);
+  playBeep(554, 0.18, 0.6, 0.22);
+  playBeep(659, 0.35, 0.7, 0.44);
+}
+
+function playTickSound() {
+  if (!soundOn) return;
+  playBeep(660, 0.08, 0.3);
+}
+
+// ══════════════════════════════════════
+//   PRESET / CUSTOM
+// ══════════════════════════════════════
+function selectPreset(min, sec, name, label, el) {
+  totalSeconds = min * 60 + sec;
+  selectedModeName = name + ' — ' + label;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  // clear custom
+  document.getElementById('customMin').value = 0;
+  document.getElementById('customSec').value = 0;
+  document.getElementById('customBox').classList.remove('focused');
+}
+
+function onCustomInput() {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('selected'));
+  const m = parseInt(document.getElementById('customMin').value) || 0;
+  const s = parseInt(document.getElementById('customSec').value) || 0;
+  totalSeconds = m * 60 + s;
+  selectedModeName = 'Kustom — ' + formatTime(totalSeconds);
+  document.getElementById('customBox').classList.add('focused');
+}
+
+// ══════════════════════════════════════
+//   NAVIGATION
+// ══════════════════════════════════════
+function goToTimer() {
+  if (totalSeconds <= 0) { alert('Pilih atau masukkan durasi yang valid!'); return; }
+  clearTimerState();
+  remaining = totalSeconds;
+  isDone = false;
+  updateDisplay();
+  showScreen('timerScreen');
+  document.getElementById('selectedLabel').querySelector('span').textContent = selectedModeName;
+  // unlock audio on user gesture
+  try { getAudioContext()?.resume(); } catch(e){}
+}
+
+function goBack() {
+  stopTimer();
+  clearTimerState();
+  showScreen('selectScreen');
+  exitFullscreen();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ══════════════════════════════════════
+//   TIMER LOGIC (performance.now based)
+// ══════════════════════════════════════
+function mainAction() {
+  if (isDone) { resetTimer(); return; }
+  if (!running) startTimer(); else pauseTimer();
+}
+
+function startTimer() {
+  if (running || isDone) return;
+  running = true;
+  startTime = performance.now();
+  expectedEnd = startTime + remaining * 1000;
+  intervalId = setInterval(tick, 200);
+  updateControls();
+}
+
+function tick() {
+  const now = performance.now();
+  const left = Math.round((expectedEnd - now) / 1000);
+  if (left <= 0) {
+    remaining = 0;
+    updateDisplay();
+    finishTimer();
+  } else {
+    remaining = left;
+    updateDisplay();
+  }
+}
+
+function pauseTimer() {
+  if (!running) return;
+  running = false;
+  clearInterval(intervalId);
+  intervalId = null;
+  updateControls();
+}
+
+function stopTimer() {
+  running = false;
+  clearInterval(intervalId);
+  intervalId = null;
+}
+
+function resetTimer() {
+  stopTimer();
+  remaining = totalSeconds;
+  isDone = false;
+  clearDone();
+  updateDisplay();
+  updateControls();
+}
+
+function clearTimerState() {
+  stopTimer();
+  isDone = false;
+  clearDone();
+}
+
+function finishTimer() {
+  stopTimer();
+  isDone = true;
+  remaining = 0;
+  updateDisplay();
+  // done UI
+  document.getElementById('doneOverlay').classList.add('show');
+  document.getElementById('fsDone').classList.add('show');
+  document.getElementById('timerLabel').textContent = 'SELESAI!';
+  document.getElementById('timerLabel').style.color = '#FF6B35';
+  document.getElementById('statusBadge').textContent = 'Selesai';
+  document.getElementById('statusBadge').className = 'status-badge done';
+  // btn → reset
+  document.getElementById('mainBtnLabel').textContent = 'ULANGI';
+  document.getElementById('mainBtnIcon').innerHTML = '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" fill="none" stroke="white" stroke-width="2.5"/><path d="M3 3v5h5" fill="none" stroke="white" stroke-width="2.5"/>';
+  playDoneSound();
+}
+
+function clearDone() {
+  document.getElementById('doneOverlay').classList.remove('show');
+  document.getElementById('fsDone').classList.remove('show');
+  document.getElementById('timerLabel').textContent = 'Siap Bermain';
+  document.getElementById('timerLabel').style.color = '';
+  document.getElementById('statusBadge').textContent = 'Siap';
+  document.getElementById('statusBadge').className = 'status-badge';
+  document.getElementById('mainBtnLabel').textContent = 'MULAI';
+  document.getElementById('mainBtnIcon').innerHTML = '<polygon points="5,3 19,12 5,21"/>';
+}
+
+// ══════════════════════════════════════
+//   DISPLAY
+// ══════════════════════════════════════
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+}
+
+function updateDisplay() {
+  const timeStr = formatTime(remaining);
+  const el = document.getElementById('timerDigits');
+  el.textContent = timeStr;
+  document.getElementById('fsDigits').textContent = timeStr;
+
+  // color state
+  el.classList.remove('warning','danger');
+  document.getElementById('fsDigits').classList.remove('warning','danger');
+  if (remaining <= 5 && remaining > 0) {
+    el.classList.add('danger');
+    document.getElementById('fsDigits').classList.add('danger');
+    if (running) playTickSound();
+  } else if (remaining <= 10 && remaining > 0) {
+    el.classList.add('warning');
+    document.getElementById('fsDigits').classList.add('warning');
+  }
+
+  // progress arc
+  const frac = totalSeconds > 0 ? remaining / totalSeconds : 0;
+  const offset = CIRCUMFERENCE * (1 - frac);
+  const bar = document.getElementById('progressBar');
+  bar.style.strokeDashoffset = offset;
+  // color arc
+  if (remaining <= 5 && remaining > 0) bar.style.stroke = '#FF6B35';
+  else if (remaining <= 10 && remaining > 0) bar.style.stroke = '#E6B800';
+  else bar.style.stroke = '#1A8FE3';
+}
+
+function updateControls() {
+  const mainBtn = document.getElementById('mainBtn');
+  const mainLabel = document.getElementById('mainBtnLabel');
+  const mainIcon = document.getElementById('mainBtnIcon');
+  const badge = document.getElementById('statusBadge');
+
+  if (isDone) return;
+  if (running) {
+    mainLabel.textContent = 'JEDA';
+    mainIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+    badge.textContent = '● Berjalan';
+    badge.className = 'status-badge running';
+    document.getElementById('timerLabel').textContent = 'Hitung Mundur';
+  } else {
+    if (remaining < totalSeconds && remaining > 0) {
+      mainLabel.textContent = 'LANJUTKAN';
+      mainIcon.innerHTML = '<polygon points="5,3 19,12 5,21"/>';
+      badge.textContent = '⏸ Dijeda';
+      badge.className = 'status-badge paused';
+      document.getElementById('timerLabel').textContent = 'Dijeda';
+    } else {
+      mainLabel.textContent = 'MULAI';
+      mainIcon.innerHTML = '<polygon points="5,3 19,12 5,21"/>';
+      badge.textContent = 'Siap';
+      badge.className = 'status-badge';
+      document.getElementById('timerLabel').textContent = 'Siap Bermain';
+    }
+  }
+}
+
+// ══════════════════════════════════════
+//   SOUND TOGGLE
+// ══════════════════════════════════════
+function toggleSound() {
+  soundOn = !soundOn;
+  const btn = document.getElementById('soundBtn');
+  const icon = document.getElementById('soundIcon');
+  if (soundOn) {
+    btn.classList.remove('muted');
+    btn.title = 'Matikan Suara';
+    icon.innerHTML = '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
+  } else {
+    btn.classList.add('muted');
+    btn.title = 'Aktifkan Suara';
+    icon.innerHTML = '<path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="1.8"/><line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="1.8"/>';
+  }
+}
+
+// ══════════════════════════════════════
+//   FULLSCREEN
+// ══════════════════════════════════════
+function toggleFullscreen() {
+  const fsView = document.getElementById('fullscreenView');
+  if (fsView.classList.contains('active')) {
+    exitFullscreen();
+  } else {
+    fsView.classList.add('active');
+    fsView.style.display = 'flex';
+    document.getElementById('fsDigits').textContent = document.getElementById('timerDigits').textContent;
+    // sync classes
+    const src = document.getElementById('timerDigits');
+    const dst = document.getElementById('fsDigits');
+    dst.className = 'fs-digits' + (src.classList.contains('danger') ? ' danger' : src.classList.contains('warning') ? ' warning' : '');
+    if (isDone) document.getElementById('fsDone').classList.add('show');
+    try { document.documentElement.requestFullscreen?.(); } catch(e){}
+  }
+}
+
+function exitFullscreen() {
+  const fsView = document.getElementById('fullscreenView');
+  fsView.classList.remove('active');
+  fsView.style.display = 'none';
+  try { document.exitFullscreen?.(); } catch(e){}
+}
+
+// Sync fullscreen digits on each tick
+const origUpdate = updateDisplay;
+// Patch: already updates fsDigits inside updateDisplay above
+
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement) {
+    document.getElementById('fullscreenView').classList.remove('active');
+    document.getElementById('fullscreenView').style.display = 'none';
+  }
+});
+
+// ══════════════════════════════════════
+//   VISIBILITY (tab switch accuracy)
+// ══════════════════════════════════════
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && running) {
+    // recalc remaining from expectedEnd
+    const now = performance.now();
+    const left = Math.round((expectedEnd - now) / 1000);
+    if (left <= 0) { finishTimer(); }
+    else { remaining = left; updateDisplay(); }
+  }
+});
+
+// ══════════════════════════════════════
+//   INIT
+// ══════════════════════════════════════
+// preselect Standard
+(function init() {
+  remaining = totalSeconds;
+  updateDisplay();
+  updateControls();
+})();
+</script>
+</body>
+</html>
